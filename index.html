@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f5257">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>تقویم درسی من</title>
+<style>
+:root{--bg:#f2f5f4;--card:#fff;--ink:#10272b;--mut:#5b7074;--pri:#0f5257;--acc:#f2a541;--line:#d5e0e0;--ok:#1b7f4b;--bad:#b3261e}
+@media(prefers-color-scheme:dark){:root{--bg:#0d1b1d;--card:#142729;--ink:#e6f0ef;--mut:#92acaf;--pri:#58b6bd;--acc:#f2a541;--line:#26413f;--ok:#5fd08e;--bad:#ff8a80}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.7 Vazirmatn,Tahoma,system-ui,sans-serif;padding:env(safe-area-inset-top) 0 calc(70px + env(safe-area-inset-bottom))}
+header{padding:16px 16px 8px}header h1{margin:0;font-size:20px}header p{margin:2px 0 0;color:var(--mut);font-size:13px}
+main{padding:0 12px;max-width:760px;margin:auto}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin:10px 0}
+h2{font-size:17px;margin:14px 0 6px}h3{font-size:15px;margin:10px 0 4px}
+input,select,textarea,button{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 8px;max-width:100%}
+textarea{width:100%;min-height:64px}input[type=text],input:not([type]){width:100%}
+button{cursor:pointer;background:var(--pri);color:#fff;border:0;padding:8px 12px}
+button.g{background:transparent;color:var(--pri);border:1px solid var(--pri)}button.d{background:transparent;color:var(--bad);border:1px solid var(--bad)}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:4px 0}.chips button{white-space:nowrap;background:var(--card);color:var(--ink);border:1px solid var(--line)}
+.chips button.on{background:var(--pri);color:#fff;border-color:var(--pri)}.chips button.td{outline:2px solid var(--acc)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:6px}.row .w{grid-column:1/-1}
+.it{border-right:5px solid var(--line);}.it.d{border-right-color:var(--ok)}.it.p{border-right-color:var(--acc)}.it.n{border-right-color:var(--bad)}
+.bar{height:14px;background:var(--line);border-radius:7px;overflow:hidden}.bar i{display:block;height:100%;background:var(--pri)}
+.ch{display:flex;align-items:flex-end;gap:6px;height:120px}.ch div{flex:1;text-align:center;font-size:11px}.ch b{display:block;background:var(--acc);border-radius:4px 4px 0 0;min-height:2px}
+table{width:100%;border-collapse:collapse;font-size:13px}td,th{border:1px solid var(--line);padding:4px 6px;text-align:right}
+.mx{display:grid;grid-template-columns:1fr 1fr;gap:6px}.mx div{border:1px solid var(--line);border-radius:8px;padding:6px}
+nav{position:fixed;bottom:0;inset-inline:0;display:flex;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);overflow-x:auto}
+nav button{flex:1;min-width:60px;background:none;color:var(--mut);border-radius:0;font-size:11px;padding:8px 2px}nav button.on{color:var(--pri);font-weight:700;box-shadow:inset 0 3px var(--pri)}
+nav span{display:block;font-size:18px}
+.big{font-size:38px;text-align:center;font-variant-numeric:tabular-nums}.mut{color:var(--mut);font-size:13px}
+#pw{display:none}
+@media print{#app,nav,header{display:none}#pw{display:block}body{background:#fff;color:#000;padding:0}td,th{border-color:#000;font-size:11px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header><h1>📅 تقویم درسی من</h1><p id="sub"></p></header>
+<main id="app"></main>
+<div id="pw"></div>
+<nav id="nav"></nav>
+<script>
+const DAYS=['شنبه','یکشنبه','دوشنبه','سه‌شنبه','چهارشنبه','پنجشنبه','جمعه'];
+const TYPES=['مطالعه','مرور','حل تمرین','آزمون','استراحت'],PR=['بالا','متوسط','پایین'];
+const ST={n:'❌ انجام نشد',p:'⏳ در حال انجام',d:'✅ انجام شد'};
+const QUOTES=['امروز یک قدم کوچک، فردا یک جهش بزرگ.','انضباط یعنی انجام دادن کار، حتی وقتی حوصله‌اش نیست.','هر ساعتی که امروز می‌خوانی، یک اضطراب از آزمون کم می‌کند.','پایداری از استعداد مهم‌تر است.','فقط شروع کن؛ انگیزه بعد از شروع می‌آید.'];
+const NAVS=[['plan','📅','برنامه'],['goals','🎯','اهداف'],['night','🌙','امشب'],['prog','📈','پیشرفت'],['rules','⏱️','قوانین'],['rew','🏆','پاداش'],['set','⚙️','تنظیمات']];
+const def=()=>({cfg:{subjects:['زیست‌شناسی','شیمی','فیزیک','ریاضی','ادبیات','عربی','دین و زندگی','زبان انگلیسی'],from:16,to:22,off:6,goal:'قبولی در رشته مورد علاقه',night:'21:30'},
+rows:{0:[],1:[],2:[],3:[],4:[],5:[],6:[]},
+goals:{main:['','',''],sub:['','',''],chk:[false,false,false,false,false,false]},
+night:{h:'',p:'',q:QUOTES[0]},tgt:{},mx:['','','',''],
+rew:'• هر ۵ جلسه انجام‌شده: یک قسمت سریال / ۳۰ دقیقه بازی\n• هفته بدون غیبت: بیرون رفتن یا غذای دلخواه\n• رکورد جدید ساعت مطالعه: هدیه کوچک',
+pen:'• هر جلسه انجام‌نشده: جبران همان جلسه در روز استراحت\n• ۳ جلسه انجام‌نشده در هفته: حذف تفریح آخر هفته\n• بدون عذر؛ فقط جبران'});
+let S;try{S=JSON.parse(localStorage.getItem('sp1'))||def()}catch(e){S=def()}
+const save=()=>{try{localStorage.setItem('sp1',JSON.stringify(S))}catch(e){}};
+const t0=new Date(),TI=(t0.getDay()+1)%7;let tab='plan',day=TI;
+const dt=i=>{const d=new Date(t0);d.setDate(d.getDate()-TI+i);return d};
+const fd=d=>new Intl.DateTimeFormat('fa-IR-u-ca-persian',{month:'long',day:'numeric'}).format(d);
+const fn=n=>(+n).toLocaleString('fa-IR',{maximumFractionDigits:1});
+const tm=s=>{const[a,b]=(s||'0:0').split(':');return a*60+ +b};
+const pd=n=>String(n).padStart(2,'0'),hm=m=>pd(Math.floor(m/60))+':'+pd(m%60);
+const dur=r=>Math.max(0,tm(r.e)-tm(r.s));
+const sel=(o,v,d,i,k)=>`<select onchange="U(${d},${i},'${k}',this.value)">${o.map(x=>`<option ${x==v?'selected':''}>${x}</option>`).join('')}</select>`;
+const esc=s=>String(s??'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+const cls=s=>({d:'d',p:'p',n:'n'}[s]);
+function U(d,i,k,v){S.rows[d][i][k]=v;save();if(k=='st'||k=='sub'||k=='s'||k=='e')R()}
+function cyc(d,i){const o=['n','p','d'],r=S.rows[d][i];r.st=o[(o.indexOf(r.st)+1)%3];save();R()}
+function add(d){S.rows[d].push({s:hm(S.cfg.from*60),e:hm(S.cfg.from*60+60),sub:S.cfg.subjects[0]||'',type:'مطالعه',pr:'متوسط',st:'n',note:''});save();R()}
+function del(d,i){S.rows[d].splice(i,1);save();R()}
+function gen(){if(!confirm('برنامه فعلی با برنامه پیشنهادی جایگزین شود؟'))return;const c=S.cfg,n=c.subjects.length||1;let k=0;
+for(let d=0;d<7;d++){S.rows[d]=[];if(d==c.off)continue;let t=c.from*60;
+while(t+75<=c.to*60){let ty=['مطالعه','حل تمرین','مرور'][k%3];if(d==5&&t==c.from*60)ty='آزمون';
+S.rows[d].push({s:hm(t),e:hm(t+75),sub:c.subjects[k%n],type:ty,pr:k%3==0?'بالا':'متوسط',st:'n',note:''});k++;t+=75;
+if(t+15<=c.to*60){S.rows[d].push({s:hm(t),e:hm(t+15),sub:'استراحت',type:'استراحت',pr:'پایین',st:'n',note:''});t+=15}}}
+save();R()}
+function week(){for(let d=0;d<7;d++)S.rows[d].forEach(r=>r.st='n');S.goals.chk=S.goals.chk.map(()=>false);save();R()}
+function plan(){const d=day,rs=S.rows[d];
+return `<div class="chips">${DAYS.map((n,i)=>`<button class="${i==d?'on':''} ${i==TI?'td':''}" onclick="day=${i};R()">${n}<br><small>${fd(dt(i))}</small></button>`).join('')}</div>
+<h2>${DAYS[d]} — ${fd(dt(d))}${d==S.cfg.off?' (تعطیل)':''}</h2>
+${rs.length?'':'<div class="card mut">هنوز برنامه‌ای نیست. «افزودن بلوک» را بزن یا در تنظیمات «ساخت برنامه پیشنهادی» را اجرا کن.</div>'}
+${rs.map((r,i)=>`<div class="card it ${cls(r.st)}"><div class="row">
+<label>شروع<input type="time" value="${r.s}" onchange="U(${d},${i},'s',this.value)"></label>
+<label>پایان<input type="time" value="${r.e}" onchange="U(${d},${i},'e',this.value)"></label>
+<label class="w">درس / موضوع<input list="sl" value="${esc(r.sub)}" onchange="U(${d},${i},'sub',this.value)"></label>
+<label>نوع${sel(TYPES,r.type,d,i,'type')}</label>
+<label>اولویت${sel(PR,r.pr,d,i,'pr')}</label>
+<label class="w">یادداشت<input value="${esc(r.note)}" onchange="U(${d},${i},'note',this.value)"></label>
+<button class="w" onclick="cyc(${d},${i})">${ST[r.st]} (برای تغییر بزن)</button>
+<button class="d w" onclick="del(${d},${i})">حذف</button></div></div>`).join('')}
+<button onclick="add(${d})">+ افزودن بلوک</button>
+<datalist id="sl">${S.cfg.subjects.map(s=>`<option>${esc(s)}</option>`).join('')}</datalist>
+<h2>چک‌لیست امروزِ ${DAYS[d]}</h2><div class="card">${rs.filter(r=>r.type!='استراحت').map((r,_)=>{const i=rs.indexOf(r);return `<label style="display:block"><input type="checkbox" ${r.st=='d'?'checked':''} onchange="U(${d},${i},'st',this.checked?'d':'n')"> ${r.s} ${esc(r.sub)} (${r.type})</label>`}).join('')||'<span class="mut">—</span>'}</div>
+<button class="g" onclick="print()">🖨️ چاپ برنامه هفته</button>`}
+const inp=(a,i,ph)=>`<input placeholder="${ph}" value="${esc(S.goals[a][i])}" onchange="S.goals['${a}'][${i}]=this.value;save()">`;
+const CHK=['همه جلسه‌های بالا‌اولویت انجام شد','حداقل ۸۰٪ برنامه اجرا شد','یک آزمون یا تست زمان‌دار دادم','مباحث ضعیف را یادداشت کردم','خواب و استراحتم کافی بود','برنامه هفته بعد را نوشتم'];
+function goals(){return `<h2>🎯 ۳ هدف اصلی هفته</h2><div class="card">${[0,1,2].map(i=>inp('main',i,'هدف اصلی '+fn(i+1))).join('')}</div>
+<h2>۳ هدف فرعی</h2><div class="card">${[0,1,2].map(i=>inp('sub',i,'هدف فرعی '+fn(i+1))).join('')}</div>
+<h2>✅ چک‌لیست ارزیابی پایان هفته</h2><div class="card">${CHK.map((c,i)=>`<label style="display:block"><input type="checkbox" ${S.goals.chk[i]?'checked':''} onchange="S.goals.chk[${i}]=this.checked;save()"> ${c}</label>`).join('')}</div>`}
+function night(){const n=(TI+1)%7,rs=S.rows[n].filter(r=>r.type!='استراحت');
+return `<h2>🌙 یادآور شب — برنامه ${DAYS[n]}</h2><div class="card">
+<label>ساعت مطالعه مفید فردا<input value="${esc(S.night.h)}" placeholder="مثلاً ۴ ساعت" onchange="S.night.h=this.value;save()"></label>
+<label>درس‌های اولویت‌دار فردا<input value="${esc(S.night.p)}" placeholder="مثلاً شیمی، ریاضی" onchange="S.night.p=this.value;save()"></label>
+<label>جمله انگیزشی<textarea onchange="S.night.q=this.value;save()">${esc(S.night.q)}</textarea></label>
+<button class="g" onclick="S.night.q=QUOTES[Math.random()*QUOTES.length|0];save();R()">جمله تصادفی</button></div>
+<h3>برنامه فردا طبق جدول</h3><div class="card">${rs.map(r=>`${r.s}–${r.e}: ${esc(r.sub)} (${r.type}، ${r.pr})`).join('<br>')||'<span class="mut">برنامه‌ای ثبت نشده</span>'}</div>`}
+function prog(){const hrs=DAYS.map((_,d)=>S.rows[d].filter(r=>r.st=='d'&&r.type!='استراحت').reduce((a,r)=>a+dur(r),0)/60);
+const plan=DAYS.map((_,d)=>S.rows[d].filter(r=>r.type!='استراحت').reduce((a,r)=>a+dur(r),0)/60),mx=Math.max(1,...hrs,...plan);
+const sub={};S.rows&&Object.values(S.rows).flat().forEach(r=>{if(r.type=='استراحت')return;sub[r.sub]=sub[r.sub]||{p:0,d:0};sub[r.sub].p+=dur(r)/60;if(r.st=='d')sub[r.sub].d+=dur(r)/60});
+const tot=hrs.reduce((a,b)=>a+b,0),tp=plan.reduce((a,b)=>a+b,0);
+return `<h2>📈 ساعات مطالعه روزانه</h2><div class="card"><table><tr><th>روز</th><th>برنامه‌ریزی‌شده</th><th>انجام‌شده</th></tr>${DAYS.map((n,i)=>`<tr><td>${n}</td><td>${fn(plan[i])}</td><td>${fn(hrs[i])}</td></tr>`).join('')}<tr><th>جمع</th><th>${fn(tp)}</th><th>${fn(tot)}</th></tr></table></div>
+<div class="card"><div class="ch">${hrs.map((h,i)=>`<div><b style="height:${h/mx*100}px"></b>${DAYS[i].slice(0,2)}<br>${fn(h)}</div>`).join('')}</div><p class="mut">پیشرفت هفته: ${tp?fn(tot/tp*100):'۰'}٪ از برنامه</p><div class="bar"><i style="width:${tp?tot/tp*100:0}%"></i></div></div>
+<h2>درصد پیشرفت هر درس</h2><div class="card">${Object.keys(sub).map(k=>{const p=sub[k].p?sub[k].d/sub[k].p*100:0;return `<div>${esc(k)} — ${fn(p)}٪ <span class="mut">(${fn(sub[k].d)} از ${fn(sub[k].p)} ساعت)</span><div class="bar"><i style="width:${p}%"></i></div></div>`}).join('')||'<span class="mut">ابتدا برنامه بساز.</span>'}</div>`}
+let pm={ph:'w',left:1500,n:0,run:null};
+function pTick(){if(--pm.left<=0){beep();if(pm.ph=='w'){pm.n++;pm.ph=pm.n%4?'s':'l'}else pm.ph='w';pm.left={w:1500,s:300,l:900}[pm.ph]}pDraw()}
+function pDraw(){const e=document.getElementById('pt');if(e)e.textContent=pd(pm.left/60|0)+':'+pd(pm.left%60).replace(/./g,c=>c);const l=document.getElementById('pl');if(l)l.textContent={w:'تمرکز',s:'استراحت کوتاه ۵ دقیقه',l:'استراحت بلند ۱۵ دقیقه'}[pm.ph]+' — دور '+(pm.n+1)}
+function pGo(){if(pm.run){clearInterval(pm.run);pm.run=null}else pm.run=setInterval(pTick,1000);R()}
+function pReset(){clearInterval(pm.run);pm={ph:'w',left:1500,n:0,run:null};R()}
+function beep(){try{navigator.vibrate&&navigator.vibrate([300,100,300]);const a=new AudioContext(),o=a.createOscillator();o.connect(a.destination);o.start();o.stop(a.currentTime+.3)}catch(e){}notify('پایان این بخش پومودورو')}
+function rules(){return `<h2>⏱️ پومودورو ۲۵/۵</h2><div class="card"><div class="big" id="pt">25:00</div><p class="mut" id="pl" style="text-align:center"></p>
+<div class="row"><button onclick="pGo()">${pm.run?'توقف':'شروع'}</button><button class="g" onclick="pReset()">ریست</button></div></div>
+<div class="card"><b>قواعد:</b><br>۱) ۲۵ دقیقه تمرکز کامل، بدون گوشی.<br>۲) ۵ دقیقه استراحت کوتاه (آب، حرکت، نگاه به دور).<br>۳) بعد از ۴ دور، ۱۵ تا ۲۰ دقیقه استراحت بلند.<br>۴) در استراحت سراغ شبکه‌های اجتماعی نرو.<br>۵) هر شب قبل از خواب برنامه فردا را بنویس.</div>
+<h2>ماتریس آیزنهاور</h2><div class="mx">${[['مهم و فوری — همین حالا','🔴'],['مهم و غیرفوری — زمان‌بندی کن','🟢'],['نه مهم، فوری — کوتاه یا واگذار','🟡'],['نه مهم، نه فوری — حذف کن','⚪']].map((q,i)=>`<div><b>${q[1]} ${q[0]}</b><textarea onchange="S.mx[${i}]=this.value;save()" placeholder="درس‌ها / کارها">${esc(S.mx[i])}</textarea></div>`).join('')}</div>
+<p class="mut">نمونه: درس ضعیف و نزدیک آزمون ← مهم و فوری؛ مرور منظم درس‌های اصلی ← مهم و غیرفوری.</p>`}
+function rew(){const all=Object.values(S.rows).flat(),d=all.filter(r=>r.st=='d'&&r.type!='استراحت').length,n=all.filter(r=>r.st=='n'&&r.type!='استراحت').length,pts=d*10-n*5,lv=pts>=200?'🏅 طلایی':pts>=100?'🥈 نقره‌ای':pts>=30?'🥉 برنزی':'🌱 شروع';
+return `<h2>🏆 امتیاز هفته</h2><div class="card"><div class="big">${fn(pts)}</div><p style="text-align:center">سطح: ${lv}<br><span class="mut">هر جلسه انجام‌شده +۱۰، هر جلسه انجام‌نشده −۵ (فقط جلسه‌های غیر استراحت)</span></p></div>
+<h3>پاداش‌ها</h3><textarea style="min-height:110px" onchange="S.rew=this.value;save()">${esc(S.rew)}</textarea>
+<h3>جریمه‌ها (جبرانی و سازنده)</h3><textarea style="min-height:110px" onchange="S.pen=this.value;save()">${esc(S.pen)}</textarea>`}
+function set(){const c=S.cfg;return `<div class="card"><label>مقطع / هدف نهایی<input value="${esc(c.goal)}" onchange="S.cfg.goal=this.value;save()"></label>
+<label>دروس (با ویرگول جدا کن)<textarea onchange="S.cfg.subjects=this.value.split(/[,،]/).map(s=>s.trim()).filter(Boolean);save()">${esc(c.subjects.join('، '))}</textarea></label>
+<div class="row"><label>ساعت شروع<input type="number" min="0" max="23" value="${c.from}" onchange="S.cfg.from=+this.value;save()"></label><label>ساعت پایان<input type="number" min="1" max="24" value="${c.to}" onchange="S.cfg.to=+this.value;save()"></label>
+<label>روز تعطیل<select onchange="S.cfg.off=+this.value;save()">${DAYS.map((n,i)=>`<option value="${i}" ${i==c.off?'selected':''}>${n}</option>`).join('')}</select></label>
+<label>یادآور شبانه<input type="time" value="${c.night}" onchange="S.cfg.night=this.value;save()"></label></div></div>
+<div class="card"><button class="w" onclick="gen()">✨ ساخت برنامه پیشنهادی از روی این تنظیمات</button><br><br>
+<button class="g" onclick="Notification.requestPermission().then(R)">🔔 فعال‌سازی اعلان (${window.Notification?Notification.permission:'ناسازگار'})</button>
+<p class="mut">اعلان‌ها فقط وقتی برنامه باز یا در پس‌زمینه گوشی فعال باشد کار می‌کنند. برای اطمینان از یادآوری، آلارم گوشی را هم تنظیم کن.</p></div>
+<div class="card"><button class="g" onclick="week()">شروع هفته جدید (ریست وضعیت‌ها)</button> <button class="g" onclick="exp()">دریافت پشتیبان</button>
+<label class="mut">بازیابی پشتیبان<input type="file" accept=".json" onchange="imp(this.files[0])"></label><br><button class="d" onclick="if(confirm('همه داده‌ها پاک شود؟')){S=def();save();R()}">پاک کردن همه چیز</button></div>`}
+function exp(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:'application/json'}));a.download='study-backup.json';a.click()}
+function imp(f){if(!f)return;f.text().then(t=>{try{S=JSON.parse(t);save();R()}catch(e){alert('فایل معتبر نیست')}})}
+function notify(m){if(window.Notification&&Notification.permission=='granted'){navigator.serviceWorker?.ready.then(r=>r.showNotification('تقویم درسی',{body:m,icon:'icons/icon-192.png'})).catch(()=>new Notification(m))}}
+let last='';setInterval(()=>{const n=new Date,k=pd(n.getHours())+':'+pd(n.getMinutes());if(k==last)return;last=k;
+(S.rows[(n.getDay()+1)%7]||[]).forEach(r=>{if(r.s==k&&r.type!='استراحت')notify(`الان وقت ${r.sub} است (${r.type})`)});
+if(k==S.cfg.night)notify('برنامه فردا را بنویس 🌙')},20000);
+function pw(){return `<h2>برنامه هفتگی — ${esc(S.cfg.goal)}</h2><table><tr><th>روز و تاریخ</th><th>ساعت</th><th>درس</th><th>نوع</th><th>اولویت</th><th>وضعیت</th><th>یادداشت</th></tr>${DAYS.map((n,d)=>S.rows[d].map((r,i)=>`<tr><td>${i?'':n+' '+fd(dt(d))}</td><td>${r.s}–${r.e}</td><td>${esc(r.sub)}</td><td>${r.type}</td><td>${r.pr}</td><td>${ST[r.st]}</td><td>${esc(r.note)}</td></tr>`).join('')).join('')}</table>`}
+function R(){const f={plan,goals,night,prog,rules,rew,set}[tab];document.getElementById('app').innerHTML=f();
+document.getElementById('nav').innerHTML=NAVS.map(n=>`<button class="${n[0]==tab?'on':''}" onclick="tab='${n[0]}';R();scrollTo(0,0)"><span>${n[1]}</span>${n[2]}</button>`).join('');
+document.getElementById('sub').textContent='امروز: '+DAYS[TI]+' '+fd(t0)+(S.cfg.goal?' · '+S.cfg.goal:'');document.getElementById('pw').innerHTML=pw();pDraw()}
+R();
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
